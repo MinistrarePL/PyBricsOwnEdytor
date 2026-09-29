@@ -15,11 +15,3 @@ export interface RobotProfile {
   axleTrack: number;
   useGyro: boolean;
 }
-
-export const DISTANCE_MM = {
-  krotko: 150,
-  srednio: 300,
-  daleko: 500,
-} as const;
-
-export type DistanceKey = keyof typeof DISTANCE_MM;

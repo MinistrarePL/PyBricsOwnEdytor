@@ -71,7 +71,7 @@ export function generatePreamble(robot: RobotProfile): string {
   const gyro = robot.useGyro ? 'robot.use_gyro(True)\n' : '';
   return `from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor
-from pybricks.parameters import Direction, Port, Color
+from pybricks.parameters import Direction, Port, Color, Icon
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait
 
