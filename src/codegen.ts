@@ -11,9 +11,16 @@ export function workspaceToPython(workspace: Workspace, robot: RobotProfile): st
     throw new Error('Brak klocka startu. Odśwież stronę.');
   }
   const lines = statementLines(start.getNextBlock(), '');
+  if (start.getDescendants(false).some((b) => b.isEnabled() && KEEP_ALIVE_TYPES.has(b.type))) {
+    lines.push('while True:', `${INDENT}wait(100)`);
+  }
   const body = lines.length > 0 ? lines.join('\n') : 'wait(100)';
   return generateFullProgram(robot, body);
 }
+
+// Po zakończeniu programu Pybricks przywraca swój kolor lampki i czyści ekran,
+// więc program ze światłem lub obrazkiem musi trwać, aż dziecko naciśnie Stop.
+const KEEP_ALIVE_TYPES = new Set(['zapal_swiatlo', 'pokaz_obrazek']);
 
 function statementLines(first: Block | null, indent: string): string[] {
   const lines: string[] = [];

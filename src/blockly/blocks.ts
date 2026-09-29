@@ -102,7 +102,7 @@ const BLOCKS = [
     previousStatement: null,
     nextStatement: null,
     style: 'light_blocks',
-    tooltip: 'Zmień kolor lampki na hubie.',
+    tooltip: 'Zapal światło wokół środkowego przycisku huba. Świeci, aż naciśniesz Stop.',
   },
   {
     type: 'zgas_swiatlo',
@@ -111,7 +111,7 @@ const BLOCKS = [
     previousStatement: null,
     nextStatement: null,
     style: 'light_blocks',
-    tooltip: 'Wyłącz lampkę na hubie.',
+    tooltip: 'Zgaś światło wokół środkowego przycisku huba.',
   },
   {
     type: 'pokaz_obrazek',
@@ -135,7 +135,7 @@ const BLOCKS = [
     previousStatement: null,
     nextStatement: null,
     style: 'light_blocks',
-    tooltip: 'Pokaż obrazek na ekranie huba.',
+    tooltip: 'Pokaż obrazek na ekranie huba. Zostaje, aż naciśniesz Stop.',
   },
   {
     type: 'napisz',
