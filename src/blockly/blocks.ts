@@ -62,12 +62,23 @@ const BLOCKS = [
   },
   {
     type: 'predkosc',
-    message0: '%1 ustaw prędkość na %2 %%',
-    args0: [iconField('gauge'), { type: 'field_number', name: 'PROCENT', value: 50, min: 10, max: 100, precision: 1 }],
+    message0: '%1 prędkość: %2',
+    args0: [
+      iconField('gauge'),
+      {
+        type: 'field_dropdown',
+        name: 'PROCENT',
+        options: [
+          ['wolno', '30'],
+          ['średnio', '60'],
+          ['szybko', '100'],
+        ],
+      },
+    ],
     previousStatement: null,
     nextStatement: null,
     style: 'movement_blocks',
-    tooltip: 'Jak szybko ma jeździć robot (10–100%).',
+    tooltip: 'Jak szybko ma jeździć i skręcać robot: wolno 30%, średnio 60%, szybko 100%.',
   },
   {
     type: 'zapal_swiatlo',
