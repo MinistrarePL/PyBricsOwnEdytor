@@ -1,0 +1,22 @@
+{
+  "name": "pybricsownedytor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run copy-media && vite",
+    "copy-media": "mkdir -p public/blockly-media && cp -R node_modules/blockly/media/. public/blockly-media/",
+    "build": "npm run copy-media && tsc && vite build",
+    "preview": "vite preview"
+  },
+  "description": "Uproszczony edytor blokowy na LEGO SPIKE Prime z firmware Pybricks",
+  "devDependencies": {
+    "@types/web-bluetooth": "^0.0.21",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@pybricks/mpy-cross-v6": "^2.0.0",
+    "blockly": "^13.3.0"
+  }
+}

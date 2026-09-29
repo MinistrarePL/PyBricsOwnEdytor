@@ -1,0 +1,8 @@
+{
+  "name": "Mój robot",
+  "leftMotor": { "port": "C", "reversed": true },
+  "rightMotor": { "port": "D", "reversed": false },
+  "wheelDiameter": 56,
+  "axleTrack": 115,
+  "useGyro": true
+}
