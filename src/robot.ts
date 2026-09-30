@@ -194,6 +194,7 @@ export function generatePreamble(robot: RobotProfile): string {
   const params = ['Port', 'Color', 'Icon', 'Button'];
   if (needsDirection) {
     params.unshift('Direction');
+    params.push('Stop');
   }
 
   const lines = [

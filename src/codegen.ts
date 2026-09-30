@@ -78,8 +78,14 @@ function valueToCode(block: Block | null, ctx: Ctx): string {
   }
   switch (block.type) {
     case 'przycisk_wcisniety': {
-      const side = block.getFieldValue('PRZYCISK') === 'prawy' ? 'RIGHT' : 'LEFT';
-      return `Button.${side} in hub.buttons.pressed()`;
+      const which = String(block.getFieldValue('PRZYCISK'));
+      if (which === 'prawy') {
+        return 'Button.RIGHT in hub.buttons.pressed()';
+      }
+      if (which === 'dowolny') {
+        return '(Button.LEFT in hub.buttons.pressed() or Button.RIGHT in hub.buttons.pressed())';
+      }
+      return 'Button.LEFT in hub.buttons.pressed()';
     }
     case 'silnik_kat_ponad':
       return `abs(${motorRef(ctx.robot, block)}.angle()) > ${Math.round(num(block, 'KAT', 180))}`;
@@ -151,11 +157,13 @@ function blockToLines(block: Block, indent: string, ctx: Ctx): string[] {
       return line(`${ref}.run_time(${signedSpeed(block)}, ${Math.round(num(block, 'SEK', 1) * 1000)})`);
     }
     case 'silnik_na_zero':
-      return line(`${motorRef(ctx.robot, block)}.run_target(${MOTOR_SPEED}, 0)`);
+      return line(`${motorRef(ctx.robot, block)}.run_target(${MOTOR_SPEED}, 0, then=Stop.COAST)`);
     case 'silnik_zeruj':
       return line(`${motorRef(ctx.robot, block)}.reset_angle(0)`);
     case 'silnik_luz':
-      return line(`${motorRef(ctx.robot, block)}.stop()`);
+      return line(`${motorRef(ctx.robot, block)}.stop(Stop.COAST)`);
+    case 'pokaz_obrot':
+      return line(`hub.display.number(min(99, abs(int(${motorRef(ctx.robot, block)}.angle()))))`);
     case 'czekaj_az':
       return [`${indent}while not (${conditionOf(block, 'czekaj aż', ctx)}):`, `${indent}${INDENT}wait(10)`];
     case 'jezeli':

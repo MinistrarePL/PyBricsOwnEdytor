@@ -143,8 +143,8 @@ const JSON_BLOCKS = [
           ['😀 uśmiech', 'HAPPY'],
           ['🙁 smutek', 'SAD'],
           ['❤️ serce', 'HEART'],
-          ['✅ TAK', 'TRUE'],
-          ['❌ NIE', 'FALSE'],
+          ['✅ TAK', 'YES'],
+          ['❌ NIE', 'NO'],
           ['⬆️ strzałka w górę', 'UP'],
           ['⬇️ strzałka w dół', 'DOWN'],
           ['⬅️ strzałka w lewo', 'LEFT'],
@@ -237,6 +237,7 @@ const JSON_BLOCKS = [
         options: [
           ['lewy', 'lewy'],
           ['prawy', 'prawy'],
+          ['lewy lub prawy', 'dowolny'],
         ],
       },
     ],
@@ -367,6 +368,19 @@ function defineDynamicBlocks(): void {
       this.setNextStatement(true);
       this.setStyle('motors_blocks');
       this.setTooltip('Silnik można kręcić ręką.');
+    },
+  };
+
+  Blockly.Blocks.pokaz_obrot = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('grid'))
+        .appendField('pokaż obrót silnika')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('light_blocks');
+      this.setTooltip('Pokaż na hubie, o ile stopni obrócono silnik.');
     },
   };
 
@@ -517,7 +531,7 @@ function toolbox(profile: RobotProfile): Blockly.utils.toolbox.ToolboxInfo {
       kind: 'category',
       name: 'Światło',
       categorystyle: 'light_category',
-      contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran'].map(block),
+      contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran', ...(motorsOf(profile).length > 0 ? ['pokaz_obrot'] : [])].map(block),
     },
     {
       kind: 'category',

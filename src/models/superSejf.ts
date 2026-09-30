@@ -16,7 +16,7 @@ export const SUPER_SEJF_PROFILE: RobotProfile = {
 export const superSejfModel: ModelTemplate = {
   id: 'super-sejf',
   name: 'Super-sejf',
-  description: 'Sejf z osłoną pokrętła. Otworzy się, gdy wciśniesz lewy przycisk i przekręcisz pokrętło.',
+  description: 'Sejf z osłoną pokrętła. Otworzy się, gdy wciśniesz mały przycisk huba i przekręcisz pokrętło.',
   image: './models/super-sejf.png',
   lessonUrl: 'https://education.lego.com/en-us/lessons/prime-kickstart-a-business/keep-it-really-safe/',
   pdfs: [
@@ -36,29 +36,27 @@ export const superSejfModel: ModelTemplate = {
     { type: 'dzwiek', fields: { TON: '250', SEK: 0.2 } },
     { type: 'dzwiek', fields: { TON: '1000', SEK: 0.2 } },
     { type: 'silnik_czas', fields: { URZ: 'zamek', KIER: 'lewo', SEK: 1 } },
-    { type: 'silnik_na_zero', fields: { URZ: 'pokretlo' } },
     { type: 'silnik_na_zero', fields: { URZ: 'oslona' } },
     { type: 'silnik_zeruj', fields: { URZ: 'pokretlo' } },
     { type: 'silnik_luz', fields: { URZ: 'pokretlo' } },
-    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'FALSE' } },
+    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'NO' } },
+    {
+      type: 'czekaj_az',
+      inputs: { WARUNEK: { type: 'przycisk_wcisniety', fields: { PRZYCISK: 'dowolny' } } },
+    },
     {
       type: 'powtarzaj_dopoki_nie',
       inputs: {
-        WARUNEK: {
-          type: 'i',
-          inputs: {
-            A: { type: 'przycisk_wcisniety', fields: { PRZYCISK: 'lewy' } },
-            B: { type: 'silnik_kat_ponad', fields: { URZ: 'pokretlo', KAT: 180 } },
-          },
-        },
+        WARUNEK: { type: 'silnik_kat_ponad', fields: { URZ: 'pokretlo', KAT: 90 } },
         DO: [
+          { type: 'pokaz_obrot', fields: { URZ: 'pokretlo' } },
           { type: 'dzwiek', fields: { TON: '250', SEK: 0.2 } },
           { type: 'silnik_obroc', fields: { URZ: 'oslona', KIER: 'prawo', KAT: 15 } },
           { type: 'czekaj', fields: { SEK: 0.8 } },
         ],
       },
     },
-    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'TRUE' } },
+    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'YES' } },
     { type: 'silnik_na_zero', fields: { URZ: 'oslona' } },
     { type: 'silnik_czas', fields: { URZ: 'zamek', KIER: 'prawo', SEK: 1 } },
   ]),

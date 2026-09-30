@@ -15,7 +15,7 @@ export const SEJF_PROFILE: RobotProfile = {
 export const sejfModel: ModelTemplate = {
   id: 'sejf',
   name: 'Sejf',
-  description: 'Zamknij sejf, a potem otwórz go lewym przyciskiem i obrotem pokrętła.',
+  description: 'Zamknij sejf, a potem otwórz go małym przyciskiem huba i obrotem pokrętła.',
   image: './models/sejf.png',
   lessonUrl: 'https://education.lego.com/en-us/lessons/prime-kickstart-a-business/keep-it-safe/',
   pdfs: [
@@ -35,21 +35,26 @@ export const sejfModel: ModelTemplate = {
     { type: 'dzwiek', fields: { TON: '250', SEK: 0.2 } },
     { type: 'dzwiek', fields: { TON: '1000', SEK: 0.2 } },
     { type: 'silnik_czas', fields: { URZ: 'zamek', KIER: 'lewo', SEK: 1 } },
-    { type: 'silnik_na_zero', fields: { URZ: 'pokretlo' } },
     { type: 'silnik_zeruj', fields: { URZ: 'pokretlo' } },
     { type: 'silnik_luz', fields: { URZ: 'pokretlo' } },
-    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'FALSE' } },
+    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'NO' } },
     {
       type: 'czekaj_az',
-      inputs: { WARUNEK: { type: 'przycisk_wcisniety', fields: { PRZYCISK: 'lewy' } } },
+      inputs: { WARUNEK: { type: 'przycisk_wcisniety', fields: { PRZYCISK: 'dowolny' } } },
     },
     { type: 'dzwiek', fields: { TON: '500', SEK: 0.2 } },
     {
-      type: 'czekaj_az',
-      inputs: { WARUNEK: { type: 'silnik_kat_ponad', fields: { URZ: 'pokretlo', KAT: 180 } } },
+      type: 'powtarzaj_dopoki_nie',
+      inputs: {
+        WARUNEK: { type: 'silnik_kat_ponad', fields: { URZ: 'pokretlo', KAT: 90 } },
+        DO: [
+          { type: 'pokaz_obrot', fields: { URZ: 'pokretlo' } },
+          { type: 'czekaj', fields: { SEK: 0.1 } },
+        ],
+      },
     },
-    { type: 'dzwiek', fields: { TON: '250', SEK: 0.2 } },
+    { type: 'dzwiek', fields: { TON: '1000', SEK: 0.2 } },
     { type: 'silnik_czas', fields: { URZ: 'zamek', KIER: 'prawo', SEK: 1 } },
-    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'TRUE' } },
+    { type: 'pokaz_obrazek', fields: { OBRAZEK: 'YES' } },
   ]),
 };
