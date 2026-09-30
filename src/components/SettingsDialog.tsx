@@ -1,10 +1,10 @@
-import { ArrowLeftRight, MoveUp, RotateCw, Settings, X } from 'lucide-react';
+import { ArrowLeftRight, Gauge, MoveUp, Palette, Radar, RotateCw, Settings, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { DEFAULT_ROBOT, sanitizeRobot } from '../robot.ts';
-import { PORTS, type PortId, type RobotProfile } from '../types.ts';
+import { getModel } from '../models/index.ts';
+import { sanitizeRobot } from '../robot.ts';
+import { DEVICE_KIND_LABEL, PORTS, motorsOf, type Device, type PortId, type RobotProfile } from '../types.ts';
 import { Modal } from './Modal.tsx';
 
-type Side = 'leftMotor' | 'rightMotor';
 export type TestKind = 'drive' | 'turn';
 
 interface Props {
@@ -20,20 +20,51 @@ export function SettingsDialog({ robot, connected, onClose, onSave, onReset, onT
   const [draft, setDraft] = useState<RobotProfile>(robot);
   const [testing, setTesting] = useState<TestKind | null>(null);
   const [hint, setHint] = useState('');
+  const modelName = getModel(draft.modelId)?.name ?? draft.name;
+  const motors = motorsOf(draft);
 
-  const setPort = (side: Side, port: PortId) => {
-    const other: Side = side === 'leftMotor' ? 'rightMotor' : 'leftMotor';
-    setDraft((d) => ({
-      ...d,
-      [side]: { ...d[side], port },
-      [other]: d[other].port === port ? { ...d[other], port: d[side].port } : d[other],
+  const setDevicePort = (id: string, port: PortId) => {
+    setDraft((current) => ({
+      ...current,
+      devices: current.devices.map((device) => (device.id === id ? { ...device, port } : device)),
     }));
   };
 
-  const setReversed = (side: Side, reversed: boolean) =>
-    setDraft((d) => ({ ...d, [side]: { ...d[side], reversed } }));
+  const setDeviceReversed = (id: string, reversed: boolean) => {
+    setDraft((current) => ({
+      ...current,
+      devices: current.devices.map((device) => (device.id === id ? { ...device, reversed } : device)),
+    }));
+  };
 
-  const swap = () => setDraft((d) => ({ ...d, leftMotor: d.rightMotor, rightMotor: d.leftMotor }));
+  const setDriveMotor = (side: 'left' | 'right', id: string) => {
+    setDraft((current) => {
+      if (!current.driveBase) {
+        return current;
+      }
+      const other = side === 'left' ? 'right' : 'left';
+      const driveBase = { ...current.driveBase, [side]: id };
+      if (driveBase[other] === id) {
+        const swap = motors.find((motor) => motor.id !== id);
+        if (swap) {
+          driveBase[other] = swap.id;
+        }
+      }
+      return { ...current, driveBase };
+    });
+  };
+
+  const swapWheels = () => {
+    setDraft((current) => {
+      if (!current.driveBase) {
+        return current;
+      }
+      return {
+        ...current,
+        driveBase: { ...current.driveBase, left: current.driveBase.right, right: current.driveBase.left },
+      };
+    });
+  };
 
   const runTest = async (kind: TestKind) => {
     const clean = sanitizeRobot(draft);
@@ -59,7 +90,9 @@ export function SettingsDialog({ robot, connected, onClose, onSave, onReset, onT
         </div>
         <div className="flex-1">
           <h2 className="text-2xl font-black text-slate-800">Ustawienia robota</h2>
-          <p className="font-semibold text-slate-500">Dla rodzica. Dziecko układa tylko klocki.</p>
+          <p className="font-semibold text-slate-500">
+            {modelName}. Dla rodzica. Dziecko układa tylko klocki.
+          </p>
         </div>
         <button
           type="button"
@@ -82,99 +115,107 @@ export function SettingsDialog({ robot, connected, onClose, onSave, onReset, onT
         </Field>
 
         <section>
-          <div className="mb-3 flex items-center justify-between">
-            <SectionTitle>Silniki kół</SectionTitle>
-            <button
-              type="button"
-              onClick={swap}
-              className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-extrabold text-slate-600 transition hover:bg-slate-200"
-            >
-              <ArrowLeftRight className="size-4" strokeWidth={2.6} /> Zamień lewy z prawym
-            </button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(['leftMotor', 'rightMotor'] as const).map((side) => (
-              <div key={side} className="rounded-2xl border-2 border-slate-100 p-4">
-                <div className="mb-3 font-extrabold text-slate-700">
-                  {side === 'leftMotor' ? 'Lewy silnik' : 'Prawy silnik'}
-                </div>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {PORTS.map((port) => {
-                    const active = draft[side].port === port;
-                    return (
-                      <button
-                        key={port}
-                        type="button"
-                        onClick={() => setPort(side, port)}
-                        className={`h-10 rounded-xl font-black transition ${
-                          active
-                            ? 'bg-sky-500 text-white shadow-[0_3px_0_#0369a1]'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                        }`}
-                      >
-                        {port}
-                      </button>
-                    );
-                  })}
-                </div>
-                <Toggle
-                  className="mt-4"
-                  checked={draft[side].reversed}
-                  onChange={(value) => setReversed(side, value)}
-                  label="Odwrócony kierunek"
-                />
-              </div>
+          <SectionTitle>Urządzenia</SectionTitle>
+          <div className="mt-3 grid gap-3">
+            {draft.devices.map((device) => (
+              <DeviceCard
+                key={device.id}
+                device={device}
+                occupied={new Set(draft.devices.filter((other) => other.id !== device.id).map((other) => other.port))}
+                onPort={(port) => setDevicePort(device.id, port)}
+                onReversed={
+                  device.kind === 'motor' ? (reversed) => setDeviceReversed(device.id, reversed) : undefined
+                }
+              />
             ))}
           </div>
         </section>
 
-        <section>
-          <SectionTitle>Wymiary</SectionTitle>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <NumberField
-              label="Średnica kół"
-              value={draft.wheelDiameter}
-              onChange={(wheelDiameter) => setDraft({ ...draft, wheelDiameter })}
-            />
-            <NumberField
-              label="Rozstaw kół"
-              value={draft.axleTrack}
-              onChange={(axleTrack) => setDraft({ ...draft, axleTrack })}
-            />
-          </div>
-          <Toggle
-            className="mt-4"
-            checked={draft.useGyro}
-            onChange={(useGyro) => setDraft({ ...draft, useGyro })}
-            label="Używaj żyroskopu (dokładniejsze skręty)"
-          />
-        </section>
+        {draft.driveBase && (
+          <>
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <SectionTitle>Silniki kół</SectionTitle>
+                <button
+                  type="button"
+                  onClick={swapWheels}
+                  className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-extrabold text-slate-600 transition hover:bg-slate-200"
+                >
+                  <ArrowLeftRight className="size-4" strokeWidth={2.6} /> Zamień lewy z prawym
+                </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(['left', 'right'] as const).map((side) => (
+                  <label key={side} className="rounded-2xl border-2 border-slate-100 p-4">
+                    <div className="mb-3 font-extrabold text-slate-700">
+                      {side === 'left' ? 'Lewe koło' : 'Prawe koło'}
+                    </div>
+                    <select
+                      value={draft.driveBase?.[side]}
+                      onChange={(e) => setDriveMotor(side, e.target.value)}
+                      className="h-11 w-full rounded-xl border-2 border-slate-200 px-3 font-bold text-slate-700 outline-none focus:border-sky-400"
+                    >
+                      {motors.map((motor) => (
+                        <option key={motor.id} value={motor.id}>
+                          {motor.name} ({motor.port})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </section>
 
-        <section className="rounded-2xl bg-slate-50 p-4">
-          <SectionTitle>Sprawdź robota</SectionTitle>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            {connected ? 'Postaw robota na podłodze i kliknij test.' : 'Najpierw połącz się z hubem.'}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <TestButton disabled={!connected || testing !== null} onClick={() => void runTest('drive')}>
-              <MoveUp className="size-4" strokeWidth={2.8} /> {testing === 'drive' ? 'Wysyłam…' : 'Jedź 20 cm'}
-            </TestButton>
-            <TestButton disabled={!connected || testing !== null} onClick={() => void runTest('turn')}>
-              <RotateCw className="size-4" strokeWidth={2.8} /> {testing === 'turn' ? 'Wysyłam…' : 'Obrót w prawo 90°'}
-            </TestButton>
-          </div>
-          {hint && <p className="mt-3 text-sm font-bold text-sky-700">{hint}</p>}
-        </section>
+            <section>
+              <SectionTitle>Wymiary</SectionTitle>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <NumberField
+                  label="Średnica kół"
+                  value={draft.driveBase.wheelDiameter}
+                  onChange={(wheelDiameter) =>
+                    setDraft({ ...draft, driveBase: { ...draft.driveBase!, wheelDiameter } })
+                  }
+                />
+                <NumberField
+                  label="Rozstaw kół"
+                  value={draft.driveBase.axleTrack}
+                  onChange={(axleTrack) => setDraft({ ...draft, driveBase: { ...draft.driveBase!, axleTrack } })}
+                />
+              </div>
+              <Toggle
+                className="mt-4"
+                checked={draft.driveBase.useGyro}
+                onChange={(useGyro) => setDraft({ ...draft, driveBase: { ...draft.driveBase!, useGyro } })}
+                label="Używaj żyroskopu (dokładniejsze skręty)"
+              />
+            </section>
+
+            <section className="rounded-2xl bg-slate-50 p-4">
+              <SectionTitle>Sprawdź robota</SectionTitle>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                {connected ? 'Postaw robota na podłodze i kliknij test.' : 'Najpierw połącz się z hubem.'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <TestButton disabled={!connected || testing !== null} onClick={() => void runTest('drive')}>
+                  <MoveUp className="size-4" strokeWidth={2.8} /> {testing === 'drive' ? 'Wysyłam…' : 'Jedź 20 cm'}
+                </TestButton>
+                <TestButton disabled={!connected || testing !== null} onClick={() => void runTest('turn')}>
+                  <RotateCw className="size-4" strokeWidth={2.8} /> {testing === 'turn' ? 'Wysyłam…' : 'Obrót w prawo 90°'}
+                </TestButton>
+              </div>
+              {hint && <p className="mt-3 text-sm font-bold text-sky-700">{hint}</p>}
+            </section>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3 border-t border-slate-100 px-7 py-5">
         <button
           type="button"
           onClick={() => {
-            setDraft(onReset());
-            setHint(
-              `Przywrócono domyślne: silniki ${DEFAULT_ROBOT.leftMotor.port}/${DEFAULT_ROBOT.rightMotor.port}, koła ${DEFAULT_ROBOT.wheelDiameter} mm.`,
-            );
+            const restored = onReset();
+            setDraft(restored);
+            setHint(`Przywrócono domyślne ustawienia modelu ${getModel(restored.modelId)?.name ?? restored.name}.`);
           }}
           className="rounded-full px-4 py-2 text-sm font-extrabold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
         >
@@ -201,6 +242,71 @@ export function SettingsDialog({ robot, connected, onClose, onSave, onReset, onT
       </div>
     </Modal>
   );
+}
+
+function DeviceCard({
+  device,
+  occupied,
+  onPort,
+  onReversed,
+}: {
+  device: Device;
+  occupied: Set<PortId>;
+  onPort: (port: PortId) => void;
+  onReversed?: (reversed: boolean) => void;
+}) {
+  return (
+    <div className="rounded-2xl border-2 border-slate-100 p-4">
+      <div className="mb-3 flex items-center gap-3">
+        <KindIcon kind={device.kind} />
+        <div>
+          <div className="font-extrabold text-slate-800">{device.name}</div>
+          <div className="text-sm font-semibold text-slate-400">{DEVICE_KIND_LABEL[device.kind]}</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-6 gap-1.5">
+        {PORTS.map((port) => {
+          const active = device.port === port;
+          const taken = occupied.has(port);
+          return (
+            <button
+              key={port}
+              type="button"
+              disabled={taken}
+              onClick={() => onPort(port)}
+              className={`h-10 rounded-xl font-black transition ${
+                active
+                  ? 'bg-sky-500 text-white shadow-[0_3px_0_#0369a1]'
+                  : taken
+                    ? 'cursor-not-allowed bg-slate-50 text-slate-300'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
+            >
+              {port}
+            </button>
+          );
+        })}
+      </div>
+      {onReversed && (
+        <Toggle className="mt-4" checked={Boolean(device.reversed)} onChange={onReversed} label="Odwrócony kierunek" />
+      )}
+    </div>
+  );
+}
+
+function KindIcon({ kind }: { kind: Device['kind'] }) {
+  const className = 'size-5 text-slate-600';
+  const icon =
+    kind === 'motor' ? (
+      <Gauge className={className} strokeWidth={2.2} />
+    ) : kind === 'colorSensor' ? (
+      <Palette className={className} strokeWidth={2.2} />
+    ) : kind === 'distanceSensor' ? (
+      <Radar className={className} strokeWidth={2.2} />
+    ) : (
+      <Gauge className={className} strokeWidth={2.2} />
+    );
+  return <div className="grid size-10 place-items-center rounded-xl bg-slate-100">{icon}</div>;
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -250,9 +356,7 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={`flex items-center gap-3 text-left font-bold text-slate-600 ${className}`}
     >
-      <span
-        className={`relative h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}
-      >
+      <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}>
         <span
           className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : ''}`}
         />

@@ -1,17 +1,34 @@
-import { Bluetooth, Bot, FilePlus, LoaderCircle, Play, Settings, Square, Unplug } from 'lucide-react';
+import { Bluetooth, BookOpen, Bot, Boxes, FilePlus, LoaderCircle, Play, Settings, Square, Unplug } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { HubControls } from '../hooks/useHub.ts';
 
 interface Props {
   hub: HubControls;
   robotName: string;
+  modelName: string;
   bluetooth: boolean;
+  hasInstructions: boolean;
+  instructionsOpen: boolean;
   onPlay: () => void;
   onNew: () => void;
   onSettings: () => void;
+  onModels: () => void;
+  onInstructions: () => void;
 }
 
-export function TopBar({ hub, robotName, bluetooth, onPlay, onNew, onSettings }: Props) {
+export function TopBar({
+  hub,
+  robotName,
+  modelName,
+  bluetooth,
+  hasInstructions,
+  instructionsOpen,
+  onPlay,
+  onNew,
+  onSettings,
+  onModels,
+  onInstructions,
+}: Props) {
   return (
     <header className="relative z-20 flex h-20 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5 shadow-[0_1px_0_rgb(15_23_42/0.02),0_6px_20px_-12px_rgb(15_23_42/0.25)]">
       <div className="flex items-center gap-3">
@@ -20,7 +37,10 @@ export function TopBar({ hub, robotName, bluetooth, onPlay, onNew, onSettings }:
         </div>
         <div className="leading-tight">
           <div className="text-lg font-black tracking-tight text-slate-800">Edytor klocków</div>
-          <div className="text-sm font-semibold text-slate-400">{robotName}</div>
+          <div className="text-sm font-semibold text-slate-400">
+            {modelName}
+            {robotName !== modelName ? ` · ${robotName}` : ''}
+          </div>
         </div>
       </div>
 
@@ -29,6 +49,12 @@ export function TopBar({ hub, robotName, bluetooth, onPlay, onNew, onSettings }:
       <HubButton hub={hub} bluetooth={bluetooth} />
 
       <div className="flex items-center gap-2">
+        <IconButton label="Modele" onClick={onModels}>
+          <Boxes className="size-6" strokeWidth={2.2} />
+        </IconButton>
+        <IconButton label="Instrukcja budowania" onClick={onInstructions} disabled={!hasInstructions} active={instructionsOpen}>
+          <BookOpen className="size-6" strokeWidth={2.2} />
+        </IconButton>
         <IconButton label="Nowy program" onClick={onNew}>
           <FilePlus className="size-6" strokeWidth={2.2} />
         </IconButton>
@@ -112,14 +138,29 @@ function HubButton({ hub, bluetooth }: { hub: HubControls; bluetooth: boolean })
   );
 }
 
-function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+function IconButton({
+  label,
+  onClick,
+  children,
+  disabled,
+  active,
+}: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+  active?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="grid size-12 place-items-center rounded-2xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95"
+      disabled={disabled}
+      className={`grid size-12 place-items-center rounded-2xl transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 ${
+        active ? 'bg-sky-100 text-sky-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+      }`}
     >
       {children}
     </button>

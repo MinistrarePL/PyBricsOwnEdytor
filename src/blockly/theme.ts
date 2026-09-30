@@ -3,8 +3,10 @@ import * as Blockly from 'blockly';
 export const CATEGORY_COLOURS = {
   events: ['#FFBF00', '#E6AC00', '#CC9900'],
   movement: ['#FF4CCD', '#E644B8', '#CC3DA4'],
+  motors: ['#0FBD8C', '#0EAA7E', '#0C9470'],
   light: ['#9966FF', '#855CD6', '#774DCB'],
   sound: ['#CF63CF', '#C94FC9', '#BD42BD'],
+  sensors: ['#2EA5E8', '#2894D1', '#2383BA'],
   control: ['#FFAB19', '#EC9C13', '#CF8B17'],
 } as const;
 

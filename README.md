@@ -29,9 +29,20 @@ Syn korzysta ze strony na GitHub Pages (`https://….github.io/….`), nie z loc
 
 ## Ustawienia robota
 
-Domyślnie: silniki **C** (lewy, odwrócony) i **D** (prawy), koła **56 mm**, rozstaw **115 mm**, żyroskop włączony.
+Domyślnie: silniki **C** (lewe koło, odwrócone) i **D** (prawe koło), koła **56 mm**, rozstaw **115 mm**, żyroskop włączony.
 
 Porty i kierunki zmieniasz ikoną **⚙**. Przyciski „Jedź 20 cm” i „Obrót w prawo 90°” pomagają sprawdzić, czy silniki nie są zamienione.
+
+## Modele (Sejf, Super-sejf)
+
+Ikona pudełek otwiera galerię. Wybranie modelu:
+
+1. Ustawia porty urządzeń (np. sejf: B pokrętło, C zamek).
+2. Wczytuje gotowy program z klocków.
+3. Pokazuje, jak podłączyć kable.
+4. Otwiera instrukcję budowania PDF w panelu z prawej (strona po stronie).
+
+Bloczki odwołują się do nazw („silnik zamek”), nie do liter portów. Port zmieniasz w ⚙, program zostaje ten sam.
 
 ## Firmware LEGO
 

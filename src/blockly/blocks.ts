@@ -1,17 +1,35 @@
 import * as Blockly from 'blockly';
 import type { WorkspaceSvg } from 'blockly';
+import { DEFAULT_ROBOT } from '../robot.ts';
+import type { RobotProfile } from '../types.ts';
+import { motorsOf } from '../types.ts';
 import { iconField, iconUri, type IconName } from './icons.ts';
 import { spikeTheme } from './theme.ts';
 
 export const START_TYPE = 'start';
 const STORAGE_KEY = 'pybricks-junior-workspace-v2';
 
+let currentProfile: RobotProfile = DEFAULT_ROBOT;
+
+export function getWorkspaceProfile(): RobotProfile {
+  return currentProfile;
+}
+
+export function setWorkspaceProfile(profile: RobotProfile): void {
+  currentProfile = profile;
+}
+
 const DIRECTION = [
   ['do przodu', 'przod'],
   ['do tyłu', 'tyl'],
 ];
 
-const BLOCKS = [
+const MOTOR_TURN: Blockly.MenuOption[] = [
+  ['w prawo', 'prawo'],
+  ['w lewo', 'lewo'],
+];
+
+const JSON_BLOCKS = [
   {
     type: START_TYPE,
     message0: '%1 gdy program startuje',
@@ -125,6 +143,8 @@ const BLOCKS = [
           ['😀 uśmiech', 'HAPPY'],
           ['🙁 smutek', 'SAD'],
           ['❤️ serce', 'HEART'],
+          ['✅ TAK', 'TRUE'],
+          ['❌ NIE', 'FALSE'],
           ['⬆️ strzałka w górę', 'UP'],
           ['⬇️ strzałka w dół', 'DOWN'],
           ['⬅️ strzałka w lewo', 'LEFT'],
@@ -206,12 +226,223 @@ const BLOCKS = [
     style: 'control_blocks',
     tooltip: 'Rób klocki w środku bez końca (aż naciśniesz Stop).',
   },
+  {
+    type: 'przycisk_wcisniety',
+    message0: '%1 przycisk %2 wciśnięty',
+    args0: [
+      iconField('button'),
+      {
+        type: 'field_dropdown',
+        name: 'PRZYCISK',
+        options: [
+          ['lewy', 'lewy'],
+          ['prawy', 'prawy'],
+        ],
+      },
+    ],
+    output: 'Boolean',
+    style: 'sensors_blocks',
+    tooltip: 'Czy lewy albo prawy przycisk huba jest wciśnięty.',
+  },
+  {
+    type: 'i',
+    message0: '%1 i %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Boolean' },
+      { type: 'input_value', name: 'B', check: 'Boolean' },
+    ],
+    output: 'Boolean',
+    inputsInline: true,
+    style: 'sensors_blocks',
+    tooltip: 'Oba warunki muszą być prawdziwe.',
+  },
+  {
+    type: 'lub',
+    message0: '%1 lub %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Boolean' },
+      { type: 'input_value', name: 'B', check: 'Boolean' },
+    ],
+    output: 'Boolean',
+    inputsInline: true,
+    style: 'sensors_blocks',
+    tooltip: 'Wystarczy, że jeden warunek jest prawdziwy.',
+  },
+  {
+    type: 'nie',
+    message0: 'nie %1',
+    args0: [{ type: 'input_value', name: 'A', check: 'Boolean' }],
+    output: 'Boolean',
+    inputsInline: true,
+    style: 'sensors_blocks',
+    tooltip: 'Odwraca warunek: tak staje się nie.',
+  },
 ];
+
+function motorOptions(): Blockly.MenuOption[] {
+  const motors = motorsOf(currentProfile);
+  if (motors.length === 0) {
+    return [['(brak silnika)', '']];
+  }
+  return motors.map((device) => [`${device.name} (${device.port})`, device.id]);
+}
+
+function imageField(name: IconName): Blockly.FieldImage {
+  return new Blockly.FieldImage(iconUri(name), 26, 26, '');
+}
+
+function defineDynamicBlocks(): void {
+  Blockly.Blocks.silnik_obroc = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('motor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('obróć')
+        .appendField(new Blockly.FieldDropdown(MOTOR_TURN), 'KIER')
+        .appendField('o')
+        .appendField(new Blockly.FieldNumber(90, 1, 3600, 1), 'KAT')
+        .appendField('°');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('motors_blocks');
+      this.setTooltip('Obróć silnik o podaną liczbę stopni.');
+    },
+  };
+
+  Blockly.Blocks.silnik_czas = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('motor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('kręć')
+        .appendField(new Blockly.FieldDropdown(MOTOR_TURN), 'KIER')
+        .appendField('przez')
+        .appendField(new Blockly.FieldNumber(1, 0.1, 30, 0.1), 'SEK')
+        .appendField('s');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('motors_blocks');
+      this.setTooltip('Kręć silnikiem przez chwilę.');
+    },
+  };
+
+  Blockly.Blocks.silnik_na_zero = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('motor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('ustaw na pozycję 0');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('motors_blocks');
+      this.setTooltip('Obróć silnik do pozycji zerowej.');
+    },
+  };
+
+  Blockly.Blocks.silnik_zeruj = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('motor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('wyzeruj licznik');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('motors_blocks');
+      this.setTooltip('Zapamiętaj obecną pozycję jako zero.');
+    },
+  };
+
+  Blockly.Blocks.silnik_luz = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('motor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('puść luźno');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('motors_blocks');
+      this.setTooltip('Silnik można kręcić ręką.');
+    },
+  };
+
+  Blockly.Blocks.silnik_kat_ponad = {
+    init() {
+      this.appendDummyInput()
+        .appendField(imageField('sensor'))
+        .appendField('silnik')
+        .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
+        .appendField('obrócony o więcej niż')
+        .appendField(new Blockly.FieldNumber(180, 1, 3600, 1), 'KAT')
+        .appendField('°');
+      this.setOutput(true, 'Boolean');
+      this.setStyle('sensors_blocks');
+      this.setTooltip('Czy silnik został obrócony o więcej niż tyle stopni.');
+    },
+  };
+
+  Blockly.Blocks.czekaj_az = {
+    init() {
+      this.appendValueInput('WARUNEK')
+        .setCheck('Boolean')
+        .appendField(imageField('clock'))
+        .appendField('czekaj aż');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('control_blocks');
+      this.setTooltip('Czekaj, aż warunek będzie prawdziwy.');
+    },
+  };
+
+  Blockly.Blocks.jezeli = {
+    init() {
+      this.appendValueInput('WARUNEK').setCheck('Boolean').appendField(imageField('branch')).appendField('jeżeli');
+      this.appendStatementInput('DO');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('control_blocks');
+      this.setTooltip('Zrób klocki w środku tylko wtedy, gdy warunek jest prawdziwy.');
+    },
+  };
+
+  Blockly.Blocks.jezeli_inaczej = {
+    init() {
+      this.appendValueInput('WARUNEK').setCheck('Boolean').appendField(imageField('branch')).appendField('jeżeli');
+      this.appendStatementInput('DO');
+      this.appendDummyInput().appendField('inaczej');
+      this.appendStatementInput('INACZEJ');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('control_blocks');
+      this.setTooltip('Jeśli warunek jest prawdziwy, zrób pierwsze klocki. Jeśli nie — drugie.');
+    },
+  };
+
+  Blockly.Blocks.powtarzaj_dopoki_nie = {
+    init() {
+      this.appendValueInput('WARUNEK')
+        .setCheck('Boolean')
+        .appendField(imageField('repeat'))
+        .appendField('powtarzaj, dopóki nie');
+      this.appendStatementInput('DO');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setStyle('control_blocks');
+      this.setTooltip('Powtarzaj klocki, aż warunek będzie prawdziwy.');
+    },
+  };
+}
 
 const CATEGORY_ICONS: Record<string, IconName> = {
   Ruch: 'arrowUp',
+  Silniki: 'motor',
   Światło: 'bulb',
   Dźwięk: 'sound',
+  Czujniki: 'sensor',
   Sterowanie: 'repeat',
 };
 
@@ -252,7 +483,8 @@ function registerOnce(): void {
     return;
   }
   registered = true;
-  Blockly.common.defineBlocksWithJsonArray(BLOCKS);
+  Blockly.common.defineBlocksWithJsonArray(JSON_BLOCKS);
+  defineDynamicBlocks();
   Blockly.registry.register(
     Blockly.registry.Type.TOOLBOX_ITEM,
     Blockly.ToolboxCategory.registrationName,
@@ -261,43 +493,74 @@ function registerOnce(): void {
   );
 }
 
-function toolbox(): Blockly.utils.toolbox.ToolboxInfo {
+function toolbox(profile: RobotProfile): Blockly.utils.toolbox.ToolboxInfo {
   const block = (type: string) => ({ kind: 'block', type });
-  return {
-    kind: 'categoryToolbox',
-    contents: [
-      {
-        kind: 'category',
-        name: 'Ruch',
-        categorystyle: 'movement_category',
-        contents: ['jedz', 'skrec', 'predkosc'].map(block),
-      },
-      {
-        kind: 'category',
-        name: 'Światło',
-        categorystyle: 'light_category',
-        contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran'].map(block),
-      },
-      {
-        kind: 'category',
-        name: 'Dźwięk',
-        categorystyle: 'sound_category',
-        contents: ['dzwiek'].map(block),
-      },
-      {
-        kind: 'category',
-        name: 'Sterowanie',
-        categorystyle: 'control_category',
-        contents: ['czekaj', 'powtorz', 'zawsze'].map(block),
-      },
-    ],
-  };
+  const contents: Blockly.utils.toolbox.ToolboxItemInfo[] = [];
+  if (profile.driveBase) {
+    contents.push({
+      kind: 'category',
+      name: 'Ruch',
+      categorystyle: 'movement_category',
+      contents: ['jedz', 'skrec', 'predkosc'].map(block),
+    });
+  }
+  if (motorsOf(profile).length > 0) {
+    contents.push({
+      kind: 'category',
+      name: 'Silniki',
+      categorystyle: 'motors_category',
+      contents: ['silnik_obroc', 'silnik_czas', 'silnik_na_zero', 'silnik_zeruj', 'silnik_luz'].map(block),
+    });
+  }
+  contents.push(
+    {
+      kind: 'category',
+      name: 'Światło',
+      categorystyle: 'light_category',
+      contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran'].map(block),
+    },
+    {
+      kind: 'category',
+      name: 'Dźwięk',
+      categorystyle: 'sound_category',
+      contents: [block('dzwiek')],
+    },
+    {
+      kind: 'category',
+      name: 'Czujniki',
+      categorystyle: 'sensors_category',
+      contents: [
+        ...['przycisk_wcisniety', ...(motorsOf(profile).length > 0 ? ['silnik_kat_ponad'] : []), 'i', 'lub', 'nie'].map(
+          block,
+        ),
+      ],
+    },
+    {
+      kind: 'category',
+      name: 'Sterowanie',
+      categorystyle: 'control_category',
+      contents: ['czekaj', 'czekaj_az', 'jezeli', 'jezeli_inaczej', 'powtorz', 'powtarzaj_dopoki_nie', 'zawsze'].map(
+        block,
+      ),
+    },
+  );
+  return { kind: 'categoryToolbox', contents };
 }
 
-export function createWorkspace(host: HTMLElement): WorkspaceSvg {
+export function applyProfile(workspace: WorkspaceSvg, profile: RobotProfile): void {
+  setWorkspaceProfile(profile);
+  workspace.updateToolbox(toolbox(profile));
+  for (const block of workspace.getAllBlocks(false)) {
+    const field = block.getField('URZ');
+    field?.forceRerender();
+  }
+}
+
+export function createWorkspace(host: HTMLElement, profile: RobotProfile): WorkspaceSvg {
   registerOnce();
+  setWorkspaceProfile(profile);
   const workspace = Blockly.inject(host, {
-    toolbox: toolbox(),
+    toolbox: toolbox(profile),
     theme: spikeTheme,
     renderer: 'zelos',
     trashcan: true,
@@ -325,6 +588,26 @@ export function resetWorkspace(workspace: WorkspaceSvg): void {
   ensureStartBlock(workspace);
   workspace.scrollCenter();
   saveWorkspace(workspace);
+}
+
+export function loadTemplate(workspace: WorkspaceSvg, state: Record<string, unknown>): void {
+  Blockly.Events.disable();
+  try {
+    Blockly.serialization.workspaces.load(state, workspace);
+    ensureStartBlock(workspace);
+  } finally {
+    Blockly.Events.enable();
+  }
+  workspace.scrollCenter();
+  saveWorkspace(workspace);
+}
+
+export function isWorkspaceEmpty(workspace: WorkspaceSvg): boolean {
+  const start = workspace.getBlocksByType(START_TYPE, false)[0];
+  if (!start) {
+    return true;
+  }
+  return !start.getNextBlock() && workspace.getTopBlocks(false).length <= 1;
 }
 
 function ensureStartBlock(workspace: WorkspaceSvg): void {
