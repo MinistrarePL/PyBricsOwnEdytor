@@ -1,3 +1,4 @@
+import { advancedUpgradeModel } from './advancedUpgrade.ts';
 import { robotModel } from './robot.ts';
 import { sejfModel } from './sejf.ts';
 import { superSejfModel } from './superSejf.ts';
@@ -6,7 +7,7 @@ import type { RobotProfile } from '../types.ts';
 
 export type { ModelTemplate, PdfPart } from './types.ts';
 
-export const MODELS: ModelTemplate[] = [robotModel, sejfModel, superSejfModel];
+export const MODELS: ModelTemplate[] = [robotModel, advancedUpgradeModel, sejfModel, superSejfModel];
 
 export function getModel(id: string): ModelTemplate | undefined {
   return MODELS.find((model) => model.id === id);
