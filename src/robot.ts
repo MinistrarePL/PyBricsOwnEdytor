@@ -205,7 +205,7 @@ export function generatePreamble(robot: RobotProfile): string {
   if (needsDrive) {
     lines.push('from pybricks.robotics import DriveBase');
   }
-  lines.push('from pybricks.tools import wait', '', 'hub = PrimeHub()');
+  lines.push('from pybricks.tools import wait, StopWatch', '', 'hub = PrimeHub()', 'zegar = StopWatch()');
 
   for (const device of robot.devices) {
     const cls = CLASS_BY_KIND[device.kind];

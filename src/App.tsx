@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { applyProfile, loadTemplate, resetWorkspace } from './blockly/blocks.ts';
 import { testDriveProgram, testTurnProgram, workspaceToPython } from './codegen.ts';
 import { BlocklyEditor } from './components/BlocklyEditor.tsx';
+import { WorkspaceNote } from './components/WorkspaceNote.tsx';
 import { ConfirmNewDialog } from './components/ConfirmNewDialog.tsx';
 import { ConnectCablesDialog, ModelsDialog } from './components/ModelsDialog.tsx';
 import { SettingsDialog, type TestKind } from './components/SettingsDialog.tsx';
@@ -24,12 +25,17 @@ export default function App() {
   const { toasts, notify, dismiss } = useToasts();
   const hub = useHub(notify);
   const workspaceRef = useRef<WorkspaceSvg | null>(null);
+  const workspaceAreaRef = useRef<HTMLDivElement | null>(null);
   const [robot, setRobot] = useState<RobotProfile>(loadRobot);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmNew, setConfirmNew] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
   const [cablesModel, setCablesModel] = useState<ModelTemplate | null>(null);
   const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [workspaceNoteOpen, setWorkspaceNoteOpen] = useState(() => {
+    const initial = getModel(loadRobot().modelId);
+    return Boolean(initial?.workspaceNote?.length);
+  });
 
   const model = getModel(robot.modelId);
   const modelName = model?.name ?? robot.name;
@@ -85,6 +91,7 @@ export default function App() {
       loadTemplate(workspace, selected.program);
     }
     setCablesModel(selected);
+    setWorkspaceNoteOpen(Boolean(selected.workspaceNote?.length));
     notify(`Wczytano program: ${selected.name}`, 'success');
   };
 
@@ -124,8 +131,17 @@ export default function App() {
       )}
 
       <main className="relative isolate flex min-h-0 flex-1">
-        <div className="relative min-h-0 min-w-0 flex-1">
+        <div ref={workspaceAreaRef} className="relative min-h-0 min-w-0 flex-1">
           <BlocklyEditor profile={robot} onReady={onWorkspace} />
+          {workspaceNoteOpen && model?.workspaceNote && model.workspaceNote.length > 0 && (
+            <WorkspaceNote
+              modelId={robot.modelId}
+              title={`Jak uruchomić: ${model.name}`}
+              lines={model.workspaceNote}
+              containerRef={workspaceAreaRef}
+              onDismiss={() => setWorkspaceNoteOpen(false)}
+            />
+          )}
         </div>
         {instructionsOpen && pdfs.length > 0 && (
           <Suspense

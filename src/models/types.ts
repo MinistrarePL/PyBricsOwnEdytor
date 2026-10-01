@@ -15,4 +15,6 @@ export interface ModelTemplate {
   pdfs: PdfPart[];
   profile: RobotProfile;
   program: Record<string, unknown>;
+  /** Krótka wskazówka „co robić na hubie” — pokazywana nad obszarem klocków. */
+  workspaceNote?: string[];
 }

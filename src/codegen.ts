@@ -87,8 +87,20 @@ function valueToCode(block: Block | null, ctx: Ctx): string {
       }
       return 'Button.LEFT in hub.buttons.pressed()';
     }
-    case 'silnik_kat_ponad':
-      return `abs(${motorRef(ctx.robot, block)}.angle()) > ${Math.round(num(block, 'KAT', 180))}`;
+    case 'silnik_kat_ponad': {
+      const ref = motorRef(ctx.robot, block);
+      const kat = Math.round(num(block, 'KAT', 180));
+      const side = String(block.getFieldValue('STRONA') ?? 'prawo');
+      if (side === 'lewo') {
+        return `${ref}.angle() < ${-kat}`;
+      }
+      if (side === 'dowolnie') {
+        return `abs(${ref}.angle()) > ${kat}`;
+      }
+      return `${ref}.angle() > ${kat}`;
+    }
+    case 'stoper_minelo':
+      return `zegar.time() > ${Math.round(num(block, 'SEK', 5) * 1000)}`;
     case 'i':
       return `(${valueToCode(block.getInputTargetBlock('A'), ctx)} and ${valueToCode(block.getInputTargetBlock('B'), ctx)})`;
     case 'lub':
@@ -130,8 +142,11 @@ function blockToLines(block: Block, indent: string, ctx: Ctx): string[] {
       return line(`hub.light.on(Color.${block.getFieldValue('KOLOR')})`);
     case 'zgas_swiatlo':
       return line('hub.light.off()');
-    case 'pokaz_obrazek':
-      return line(`hub.display.icon(Icon.${block.getFieldValue('OBRAZEK')})`);
+    case 'pokaz_obrazek': {
+      const picture = String(block.getFieldValue('OBRAZEK'));
+      const icon = picture === 'YES' ? 'TRUE' : picture === 'NO' ? 'FALSE' : picture;
+      return line(`hub.display.icon(Icon.${icon})`);
+    }
     case 'napisz':
       return line(`hub.display.text(${JSON.stringify(String(block.getFieldValue('TEKST') ?? ''))})`);
     case 'wyczysc_ekran':
@@ -156,14 +171,23 @@ function blockToLines(block: Block, indent: string, ctx: Ctx): string[] {
       const ref = motorRef(ctx.robot, block);
       return line(`${ref}.run_time(${signedSpeed(block)}, ${Math.round(num(block, 'SEK', 1) * 1000)})`);
     }
-    case 'silnik_na_zero':
-      return line(`${motorRef(ctx.robot, block)}.run_target(${MOTOR_SPEED}, 0, then=Stop.COAST)`);
+    case 'silnik_na_zero': {
+      const ref = motorRef(ctx.robot, block);
+      const target = Math.round(num(block, 'KAT', 0));
+      const stop = block.getFieldValue('STOP') === 'COAST' ? 'Stop.COAST' : 'Stop.HOLD';
+      const goal = `${ref}.angle() + ((${target} - (${ref}.angle() % 360) + 180) % 360 - 180)`;
+      return line(`${ref}.run_target(${MOTOR_SPEED}, ${goal}, then=${stop})`);
+    }
     case 'silnik_zeruj':
       return line(`${motorRef(ctx.robot, block)}.reset_angle(0)`);
     case 'silnik_luz':
       return line(`${motorRef(ctx.robot, block)}.stop(Stop.COAST)`);
     case 'pokaz_obrot':
       return line(`hub.display.number(min(99, abs(int(${motorRef(ctx.robot, block)}.angle()))))`);
+    case 'stoper_zeruj':
+      return line('zegar.reset()');
+    case 'zatrzymaj':
+      return [`${indent}while True:`, `${indent}${INDENT}wait(1000)`];
     case 'czekaj_az':
       return [`${indent}while not (${conditionOf(block, 'czekaj aż', ctx)}):`, `${indent}${INDENT}wait(10)`];
     case 'jezeli':

@@ -143,8 +143,8 @@ const JSON_BLOCKS = [
           ['😀 uśmiech', 'HAPPY'],
           ['🙁 smutek', 'SAD'],
           ['❤️ serce', 'HEART'],
-          ['✅ TAK', 'YES'],
-          ['❌ NIE', 'NO'],
+          ['✅ TAK', 'TRUE'],
+          ['❌ NIE', 'FALSE'],
           ['⬆️ strzałka w górę', 'UP'],
           ['⬇️ strzałka w dół', 'DOWN'],
           ['⬅️ strzałka w lewo', 'LEFT'],
@@ -225,6 +225,34 @@ const JSON_BLOCKS = [
     previousStatement: null,
     style: 'control_blocks',
     tooltip: 'Rób klocki w środku bez końca (aż naciśniesz Stop).',
+  },
+  {
+    type: 'stoper_zeruj',
+    message0: '%1 wyzeruj stoper',
+    args0: [iconField('clock')],
+    previousStatement: null,
+    nextStatement: null,
+    style: 'control_blocks',
+    tooltip: 'Zacznij liczyć czas od zera.',
+  },
+  {
+    type: 'stoper_minelo',
+    message0: '%1 minęło więcej niż %2 s',
+    args0: [
+      iconField('clock'),
+      { type: 'field_number', name: 'SEK', value: 5, min: 0.1, max: 60, precision: 0.1 },
+    ],
+    output: 'Boolean',
+    style: 'sensors_blocks',
+    tooltip: 'Czy od wyzerowania stopera minęło tyle sekund.',
+  },
+  {
+    type: 'zatrzymaj',
+    message0: '%1 zatrzymaj program',
+    args0: [iconField('flag')],
+    previousStatement: null,
+    style: 'control_blocks',
+    tooltip: 'Koniec programu. Dalsze klocki się nie wykonają.',
   },
   {
     type: 'przycisk_wcisniety',
@@ -335,11 +363,20 @@ function defineDynamicBlocks(): void {
         .appendField(imageField('motor'))
         .appendField('silnik')
         .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
-        .appendField('ustaw na pozycję 0');
+        .appendField('ustaw na pozycję')
+        .appendField(new Blockly.FieldNumber(0, -3600, 3600, 1), 'KAT')
+        .appendField('° i')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['trzymaj', 'HOLD'],
+            ['puść', 'COAST'],
+          ]),
+          'STOP',
+        );
       this.setPreviousStatement(true);
       this.setNextStatement(true);
       this.setStyle('motors_blocks');
-      this.setTooltip('Obróć silnik do pozycji zerowej.');
+      this.setTooltip('Obróć silnik najkrótszą drogą do pozycji znacznika, jak w programie LEGO.');
     },
   };
 
@@ -390,12 +427,21 @@ function defineDynamicBlocks(): void {
         .appendField(imageField('sensor'))
         .appendField('silnik')
         .appendField(new Blockly.FieldDropdown(motorOptions), 'URZ')
-        .appendField('obrócony o więcej niż')
+        .appendField('obrócony')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['w prawo', 'prawo'],
+            ['w lewo', 'lewo'],
+            ['w dowolną stronę', 'dowolnie'],
+          ]),
+          'STRONA',
+        )
+        .appendField('o więcej niż')
         .appendField(new Blockly.FieldNumber(180, 1, 3600, 1), 'KAT')
         .appendField('°');
       this.setOutput(true, 'Boolean');
       this.setStyle('sensors_blocks');
-      this.setTooltip('Czy silnik został obrócony o więcej niż tyle stopni.');
+      this.setTooltip('Czy silnik został obrócony w tę stronę o więcej niż tyle stopni.');
     },
   };
 
@@ -531,7 +577,7 @@ function toolbox(profile: RobotProfile): Blockly.utils.toolbox.ToolboxInfo {
       kind: 'category',
       name: 'Światło',
       categorystyle: 'light_category',
-      contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran', ...(motorsOf(profile).length > 0 ? ['pokaz_obrot'] : [])].map(block),
+      contents: ['zapal_swiatlo', 'zgas_swiatlo', 'pokaz_obrazek', 'napisz', 'wyczysc_ekran'].map(block),
     },
     {
       kind: 'category',
@@ -544,18 +590,31 @@ function toolbox(profile: RobotProfile): Blockly.utils.toolbox.ToolboxInfo {
       name: 'Czujniki',
       categorystyle: 'sensors_category',
       contents: [
-        ...['przycisk_wcisniety', ...(motorsOf(profile).length > 0 ? ['silnik_kat_ponad'] : []), 'i', 'lub', 'nie'].map(
-          block,
-        ),
+        ...[
+          'przycisk_wcisniety',
+          'stoper_minelo',
+          ...(motorsOf(profile).length > 0 ? ['silnik_kat_ponad'] : []),
+          'i',
+          'lub',
+          'nie',
+        ].map(block),
       ],
     },
     {
       kind: 'category',
       name: 'Sterowanie',
       categorystyle: 'control_category',
-      contents: ['czekaj', 'czekaj_az', 'jezeli', 'jezeli_inaczej', 'powtorz', 'powtarzaj_dopoki_nie', 'zawsze'].map(
-        block,
-      ),
+      contents: [
+        'czekaj',
+        'czekaj_az',
+        'stoper_zeruj',
+        'jezeli',
+        'jezeli_inaczej',
+        'powtorz',
+        'powtarzaj_dopoki_nie',
+        'zawsze',
+        'zatrzymaj',
+      ].map(block),
     },
   );
   return { kind: 'categoryToolbox', contents };
